@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>D3: Force layout</title>
+		<script type="text/javascript" src="d3.v3.min.js"></script>
+		<style type="text/css">
+			#tooltip {
+				    font-family: "microsoft yahei", "simsun";
+				    font-size: 12px;
+				    width: 150px;
+				    height: auto;
+				    z-index: 2;
+				    position: absolute;
+				    background: #fff;
+				    opacity: 0.1;
+				    border-radius: 5px;
+				    box-shadow: 0 5px 10px rgba(0, 0, 0, .2);
+					}
+		</style>
+	</head>
+	<body>
+
+		<div id="bdtts_div_id">
+			<audio id="tts_autio_id" autoplay="autoplay">
+				<source id="tts_source_id" src="http://tts.baidu.com/text2audio?lan=zh&ie=UTF-8&spd=9&text=" type="audio/mpeg">
+				<embed id="tts_embed_id" height="0" width="0" src="">
+			</audio>
+		</div>
+
+		<div id="tooltip" class="hidden">
+		</div>
+		<script type="text/javascript">
+
+
+			var width=window.innerWidth;
+			var height=1600;
+			var svg = d3.select("body")
+						.append("svg")
+						.attr("width", width)
+						.attr("height", height);
+
+			d3.json("re4.json",function(data){
+				//得到数据
+				var line=data['line'];
+				var node=data['node'];
+
+
+		    	
+		    	//新建一个力导向图
+		    	var forceSimulation = d3.layout.force()
+				    					.nodes(node)//设定节点数组
+									    .links(line)//设定连线数组
+									    .size([width, height])//作用域的大小
+									    .gravity(0.3)
+									    .linkDistance(150)//连接线长度
+									    .charge(-1500)//顶点的电荷数。该参数决定是排斥还是吸引，数值越小越互相排斥
+									    .on("tick", ticked)//指时间间隔，隔一段时间刷新一次画面
+									    .start();//开始转换
+
+
+
+		    	console.log(node);
+		    	console.log(line);
+		    	
+
+		    	var marge = {top:60,bottom:60,left:60,right:60};
+    			var g = svg.append("g")
+    						.attr("transform","translate("+marge.top+","+marge.left+")");
+
+
+    			//绘制边
+		    	var links = g.append("g")
+		    		.selectAll("line")
+		    		.data(line)
+		    		.enter()
+		    		.append("line")
+		    		.attr("stroke",function(l){
+		    			if(l['class']=='family'){
+		    				return 'rgb(255,69,0)';
+		    			}else{
+		    				return '#999';
+		    			}
+		    		})
+		    		.attr("stroke-width",'1');
+		    	console.log(line);
+		    	//绘制边上文字
+		    	var linksText = g.append("g")
+					    		.selectAll("text")
+					    		.data(line)
+					    		.enter()
+					    		.append("text")
+					    		.text(function(d){
+					    			return d['weight'];
+					    		})
+					    		.attr('visibility','hidden')
+					    		.attr("fill",'red');
+
+
+				//绘制节点
+    			//为节点和节点上的文字分组
+		    	var gs = g.selectAll(".circleText")
+		    		.data(node)
+		    		.enter()
+		    		.append("g")
+		    		.attr("transform",function(d,i){
+		    			var cirX = d.x;
+		    			var cirY = d.y;
+		    			return "translate("+cirX+","+cirY+")";
+		    		})
+		    		.on('dblclick',function(d,i){
+			    		var text=d['detail'];
+
+			    		var ttsDiv = document.getElementById('bdtts_div_id');
+						var ttsAudio = document.getElementById('tts_autio_id');
+						var ttsText = text;
+						// 这样为什么替换不了播放内容
+						/*var ssrcc = 'http://tts.baidu.com/text2audio?lan=zh&ie=UTF-8&spd=10&text='+ttsText;
+						document.getElementById('tts_source_id').src=ssrcc;*/
+						
+						// 这样就可实现播放内容的替换了
+						ttsDiv.removeChild(ttsAudio);
+						var au1 = '<audio id="tts_autio_id" autoplay="autoplay">';
+						var sss = '<source id="tts_source_id" src="http://tts.baidu.com/text2audio?lan=zh&ie=UTF-8&spd=9&text='+ttsText+'" type="audio/mpeg">';
+						var eee = '<embed id="tts_embed_id" height="0" width="0" src="">';
+						var au2 = '</audio>';
+						ttsDiv.innerHTML = au1 + sss + eee + au2;
+						
+						ttsAudio = document.getElementById('tts_autio_id');
+						
+						ttsAudio.play();
+
+
+
+
+			    	})
+
+	    			.on('mouseover',function(n,i){
+			    		links.attr("stroke-width",function(l){
+			    			
+			    			//console.log(l.source.id);
+			    			//console.log(l.target.id);
+			    			//console.log(i);
+			    			if (l.source.id==i || l.target.id==i){	
+			    				return 5;
+			    			}else{
+			    				return 1;
+			    			}
+			    			});
+			    		linksText.attr("visibility",function(l){
+			    			
+			    			if (l.source.id==i || l.target.id==i){	
+			    				return 'visible';
+			    			}else{
+			    				return 'hidden';
+			    			}
+			    			});
+
+					    	d3.select('#tooltip').html("<img src=img/"+i+".jpg/ width=150px height=300px>")
+					    		 		.style("left",(d3.event.pageX+20)+"px")
+		                                .style("top",(d3.event.pageY-20)+"px")
+		                                .style("opacity",0.3);
+		    		})
+		    		.on('mouseout',function(n,i){
+			    		/*links.attr("stroke-width",1);
+			    		linksText.attr("visibility",'hidden');*/
+					    d3.select('#tooltip').html("");
+		    		})
+		    		.call(forceSimulation.drag()
+		    			.on("dragstart",started)
+		    			.on("drag",dragged)
+		    			.on("dragend",ended)
+		    		);
+
+		    		
+		    	//绘制节点
+		    	var circles=gs.append("circle")
+		    		.attr("r",30)
+		    		.attr("fill",function(d){
+		    			if(d['main']==1){
+		    				return 'rgb(230 ,230 ,250)';
+		    			}else
+		    			return 'rgb(245 ,222 ,179)';
+		    		})
+		    		.attr("stroke",function(d){
+		    			if(d['main']==1){
+		    				return 'rgb(0,0,205)';
+		    			}else
+		    			return 'rgb(255 ,69 ,0)';
+		    		})
+		    		.attr('stroke-width',2);
+
+
+		    	//文字
+		    	gs.append("text")
+		    		.attr("x",-25)
+		    		.attr("y",10)
+		    		.attr("dy",0)
+		    		.attr("fill","rgb(105,105,105)")
+		    		.text(function(d){
+		    			return d['perChName'];
+		    		});
+
+		    	//信息框
+
+	
+		    	function ticked(){
+		    		links
+		    			.attr("x1",function(d){return d.source.x;})
+		    			.attr("y1",function(d){return d.source.y;})
+		    			.attr("x2",function(d){return d.target.x;})
+		    			.attr("y2",function(d){return d.target.y;});
+		    			
+		    		linksText
+		    			.attr("x",function(d){
+		    			return (d.source.x+d.target.x)/2;
+		    		})
+		    		.attr("y",function(d){
+		    			return (d.source.y+d.target.y)/2;
+		    		});
+
+    				gs.attr("transform",function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+    			};
+
+
+			 	function started(d){
+	    			d.fixed=true;
+		    	};
+		    	function dragged(d){
+		    		d.fx = d3.event.x;
+		    		d.fy = d3.event.y;
+		    	};
+		    	function ended(d){
+		    		d.fx = null;
+		    		d.fy = null;
+		    	};
+
+
+			});
+
+
+
+
+
+
+
+		</script>
+	</body>
+</html>

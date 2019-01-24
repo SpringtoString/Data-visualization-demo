@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>test1</title>
+		<script type="text/javascript" src="d3.js"></script>
+		<style type="text/css">
+			/* No style rules here yet */		
+		</style>
+	</head>
+	<body>
+		<script type="text/javascript">
+
+
+			
+
+			//Width and height
+			var w = 800;
+			var h = 800;
+			
+			
+			
+			//Create SVG element
+			var svg = d3.select("body")
+						.append("svg:svg")
+						.attr("width", w)
+						.attr("height", h);
+			
+			//最外围矩形
+			svg.append("rect")
+				.attr('x',0)
+				.attr('y',0)
+				.attr('width',w)
+				.attr('height',h)
+				.attr('fill','Bisque');
+			
+			
+			padd=0.05;
+			x1=padd*w;
+			x2=(1-padd)*w;
+			h_scale1=0.25;
+			//低位矩形
+			svg.append("rect")
+				.attr('x',x1)
+				.attr('y',0)
+				.attr('width',x2-x1)
+				.attr('height',h*h_scale1)
+				.attr('fill','DarkOrange');
+				//.attr('stroke','white');
+			
+			
+			//中投区半椭圆
+			h_scale2=0.32
+			svg.append("ellipse")
+				.attr('cx',(x1+x2)/2)
+				.attr('cy',h*h_scale1)
+				.attr('rx',(x2-x1)/2)
+				.attr('ry',h*h_scale2)
+				.attr('fill','DarkOrange');
+				//.attr('stroke','white');
+			
+			//油漆区
+			padd1=0.33;
+			padd2=0.38;
+			
+			x3=padd1*w;
+			x4=(1-padd1)*w;
+			
+			x5=padd2*w;
+			x6=(1-padd2)*w;
+			h_scale2=0.32;
+			
+			svg.append("rect")
+				.attr('x',x3)
+				.attr('y',0)
+				.attr('width',x4-x3)
+				.attr('height',h*h_scale2)
+				.attr('fill','orange')
+				.attr('stroke','white');
+			
+			svg.append("rect")
+				.attr('x',x5)
+				.attr('y',0)
+				.attr('width',x6-x5)
+				.attr('height',h*h_scale2)
+				.attr('fill','orange')
+				.attr('stroke','white');
+			
+			//罚球圈
+			svg.append("circle")
+				.attr('cx',(x5+x6)/2)
+				.attr('cy',h*h_scale2)
+				.attr('r',(x6-x5)/2)
+				.attr('fill','orange')
+				.attr('stroke','white');
+			
+			//篮架
+			padd3=0.04;
+			h_scale3=0.05;
+			kx1=w/2;
+			ky1=0;
+			
+			kx2=w/2-w*padd3;
+			ky2=h*h_scale3;
+			
+			kx3=w/2+w*padd3;
+			ky3=h*h_scale3;
+			/*'250,0 230,25 270,25'*/
+			var point_str=''+kx1+','+ky1+' '+kx2+','+ky2+' '+kx3+','+ky3;
+			svg.append("polygon")
+				.attr('points',point_str)
+				.attr('fill','orange')
+				.attr('stroke','white')
+				.attr('stroke-width',4);
+			
+			
+			//篮筐
+			r_rate=0.008;
+			svg.append("circle")
+				.attr('cx',w/2)
+				.attr('cy',h*(h_scale3+0.008))
+				.attr('r',w*r_rate)
+				.attr('fill','orange')
+				.attr('stroke','red');
+			
+			svg.append("circle")
+				.attr('cx',(x5+x6)/2)
+				.attr('cy',h*h_scale2)
+				.attr('r',(x6-x5)/2)
+				.attr('fill','orange')
+				.attr('stroke','white');
+			
+			
+			
+			//瑕疵,添条线
+			svg.append("line")
+				.attr('x1',x5)
+				.attr('x2',x6)
+				.attr('y1',h*h_scale2)
+				.attr('y2',h*h_scale2)
+				.attr('stroke','white');
+			
+			
+			//中场圈
+			svg.append("circle")
+				.attr('cx',(x5+x6)/2)
+				.attr('cy',h)
+				.attr('r',(x6-x5)*0.7)
+				.attr('fill','Bisque')
+				.attr('stroke','white')
+				.attr('stroke-width',4);
+			
+			
+			
+			var dataset = [];
+			var dataset_copy=[];
+			var dataset_next=[];
+
+			d3.csv("shoot.csv", function(data) {
+				for(var i= 0,len = data.length; i< len; i++){
+    				dataset.push([
+    					data[i]['location_x'],
+    					data[i]['location_y'],
+    					data[i]['shoot'],
+    					data[i]['time']
+    					]);
+
+    				dataset_copy.push([
+    					data[i]['location_x'],
+    					data[i]['location_y'],
+    					data[i]['shoot'],
+    					data[i]['time']
+    					]);
+				}
+			});
+
+			d3.csv("shootnext.csv", function(data) {
+				for(var i= 0,len = data.length; i< len; i++){
+    				dataset_next.push([
+    					data[i]['location_x'],
+    					data[i]['location_y'],
+    					data[i]['shoot'],
+    					data[i]['time']
+    					]);
+				}
+			});
+
+
+			var xScale = d3.scaleLinear().domain([0, 1]).range([0, w]);
+			
+			var yScale = d3.scaleLinear().domain([0, 1]).range([0,h]);
+			//console.log(dataset);
+			
+			button_all=d3.select("body")
+					 .append('button')
+					 .attr('id','button_all')
+					 .text('showall');
+			button1=d3.select("body")
+					 .append('button')
+					 .attr('id','1st')
+					 .text('1st');
+			button2=d3.select("body")
+					 .append('button')
+					 .attr('id','2st')
+					 .text('2st');
+			button3=d3.select("body")
+					 .append('button')
+					 .attr('id','3st')
+					 .text('3st');
+			button4=d3.select("body")
+					 .append('button')
+					 .attr('id','4st')
+					 .text('4st');
+			button_next=d3.select("body")
+					 .append('button')
+					 .attr('id','next')
+					 .text('next');
+
+			button_all.on('click',function(){
+				//console.log(dataset);
+
+
+				svg.selectAll(".circleClass")
+				.data(dataset)
+				.enter()
+				.append("circle")
+				.attr("cx", function(d) {
+						//console.log(d[0]);
+						return xScale(d[0]);
+				})
+				.attr("cy", function(d) {
+						//console.log(d[1]);
+						return yScale(d[1]);
+				})
+				.attr("r", w/1000000)
+				.attr("class", "circleClass")
+				.attr('fill',function(d) {
+						if (d[2]==0)
+						return 'black';
+						else
+						return 'red'
+				})
+				.append("title")
+			    .text(function(d) {
+			   		return d[3];
+			    });
+			   
+			
+
+    			circles=svg.selectAll(".circleClass").data(dataset);
+				
+				circles
+				.transition()
+				.delay(function(d) {
+						   return d[3]* 100;
+					   })
+				.duration(1000)
+    			.attr('r', w/100);
+				
+				/*.on('mouseover',function(d){
+					//显示位置信息和时间
+					svg.append('text')
+					   .attr('x',xScale(d[0]))
+					   .attr('y',yScale(d[1]))
+					   .attr('class','time'+d[3])
+					   .attr('stroke','white')
+					   .text(''+d[3]);
+				})
+				.on('mouseout',function(d){
+					var s='.time'+d[3];
+					svg.selectAll(s)
+					   .text('');
+				});*/
+
+
+				var num=0;//记录命中数
+
+				for(var i= 0,len = dataset.length; i< len; i++){
+    				if (dataset[i][2]==1)
+    					num=num+1;
+				}
+
+				svg.append("text")
+				.attr('id','score')
+				.attr('x',0)
+				.attr('y',h)
+				.attr('fill','black')
+				.attr('stroke-width',50)
+				.text(''+num+'/'+dataset.length);
+				//console.log(dataset);
+
+			});
+
+
+			button1.on('click',function(){
+
+				var dataset2=[];
+				for(var i= 0,len = dataset.length; i< len; i++){
+						if (dataset[i][3]<=12){
+							dataset2.push([dataset[i][0],dataset[i][1],dataset[i][2],dataset[i][3]]);
+						}
+				}
+
+				
+
+				svg.selectAll(".circleClass")
+					   .data(dataset2)
+					   .transition()
+					   .duration(1000)		
+					   .attr("cx", function(d) {
+					   		return xScale(d[0]);
+					   })
+					   .attr("cy", function(d) {
+					   		return yScale(d[1]);
+					   })
+					   .attr("r", w/100)
+					   .attr("class", "circleClass")
+					   .attr('fill',function(d) {
+								if (d[2]==0)
+								return 'black';
+								else
+								return 'red'
+						});
+
+				circles=svg.selectAll(".circleClass").data(dataset2);
+				
+				circles.enter()								
+						.append("circle")	
+						.attr("cx", function(d) {
+							console.log(d[0]);
+							return xScale(d[0]);
+						})
+						.attr("cy", function(d) {
+							console.log(d[1]);
+							return yScale(d[1]);
+						})
+						.attr("class", "circleClass")
+						.attr("r", w/100)
+						.attr('fill',function(d) {
+							if (d[2]==0)
+							return 'black';
+							else
+							return 'red';
+						})
+						.merge(circles)							
+						.transition()							
+						.duration(5000)
+						.attr("cx", function(d) {
+							console.log(d[0]);
+							return xScale(d[0]);
+						})
+						.attr("cy", function(d) {
+							console.log(d[1]);
+							return yScale(d[1]);
+						})
+						.attr("r", w/100)
+						.attr("class", "circleClass")
+						.attr('fill',function(d) {
+							if (d[2]==0)
+							return 'black';
+							else
+							return 'red';
+						});
+				
+				circles.exit()				//References the exit selection (a subset of the update selection)
+						.transition()		//Initiates a transition on the one element we're deleting
+						.duration(500)		//Move past the right edge of the SVG
+						.remove();
+				var num=0;//记录命中数
+
+						for(var i= 0,len = dataset2.length; i< len; i++){
+    						if (dataset2[i][2]==1)
+    							num=num+1;
+						}
+						d3.select('#score').text(''+num+'/'+dataset2.length);
+			});
+
+			button2.on('click',function(){
+
+				var dataset2=[];
+				for(var i= 0,len = dataset.length; i< len; i++){
+						if (dataset[i][3]<=24&&dataset[i][3]>12){
+							dataset2.push([dataset[i][0],dataset[i][1],dataset[i][2],dataset[i][3]]);
+						}
+				}
+
+				
+
+				svg.selectAll(".circleClass")
+					   .data(dataset2)
+					   .transition()
+					   .duration(1000)		
+					   .attr("cx", function(d) {
+					   		return xScale(d[0]);
+					   })
+					   .attr("cy", function(d) {
+					   		return yScale(d[1]);
+					   })
+					   .attr("r", w/100)
+					   .attr("class", "circleClass")
+					   .attr('fill',function(d) {
+								if (d[2]==0)
+								return 'black';
+								else
+								return 'red'
+						});
+
+				circles=svg.selectAll(".circleClass").data(dataset2);
+				
+				circles.enter()								
+						.append("circle")	
+						.attr("cx", function(d) {
+							console.log(d[0]);
+							return xScale(d[0]);
+						})
+						.attr("cy", function(d) {
+							console.log(d[1]);
+							return yScale(d[1]);
+						})
+						.attr("class", "circleClass")
+						.attr("r", w/100)
+						.attr('fill',function(d) {
+							if (d[2]==0)
+							return 'black';
+							else
+							return 'red';
+						})
+						.merge(circles)							
+						.transition()							
+						.duration(5000)
+						.attr("cx", function(d) {
+							console.log(d[0]);
+							return xScale(d[0]);
+						})
+						.attr("cy", function(d) {
+							console.log(d[1]);
+							return yScale(d[1]);
+						})
+						.attr("r", w/100)
+						.attr("class", "circleClass")
+						.attr('fill',function(d) {
+							if (d[2]==0)
+							return 'black';
+							else
+							return 'red';
+						});
+				
+				circles.exit()				//References the exit selection (a subset of the update selection)
+						.transition()		//Initiates a transition on the one element we're deleting
+						.duration(500)		//Move past the right edge of the SVG
+						.remove();
+
+				var num=0;//记录命中数
+
+				for(var i= 0,len = dataset2.length; i< len; i++){
+					if (dataset2[i][2]==1)
+						num=num+1;
+				}
+				d3.select('#score').text(''+num+'/'+dataset2.length);
+			});
+
+			button3.on('click',function(){
+
+				var dataset2=[];
+				for(var i= 0,len = dataset.length; i< len; i++){
+						if (dataset[i][3]<=36&&dataset[i][3]>24){
+							dataset2.push([dataset[i][0],dataset[i][1],dataset[i][2],dataset[i][3]]);
+						}
+				}
+
+				
+				console.log(dataset2);
+				svg.selectAll(".circleClass")
+					   .data(dataset2)
+					   .transition()
+					   .duration(1000)		
+					   .attr("cx", function(d) {
+					   		return xScale(d[0]);
+					   })
+					   .attr("cy", function(d) {
+					   		return yScale(d[1]);
+					   })
+					   .attr("r", w/100)
+					   .attr("class", "circleClass")
+					   .attr('fill',function(d) {
+								if (d[2]==0)
+								return 'black';
+								else
+								return 'red'
+						});
+
+				circles=svg.selectAll(".circleClass").data(dataset2);
+				
+				circles.enter()								
+						.append("circle")	
+						.attr("cx", function(d) {
+							console.log(d[0]);
+							return xScale(d[0]);
+						})
+						.attr("cy", function(d) {
+							console.log(d[1]);
+							return yScale(d[1]);
+						})
+						.attr("class", "circleClass")
+						.attr("r", w/100)
+						.attr('fill',function(d) {
+							if (d[2]==0)
+							return 'black';
+							else
+							return 'red';
+						})
+						.merge(circles)							
+						.transition()							
+						.duration(5000)
+						.attr("cx", function(d) {
+							console.log(d[0]);
+							return xScale(d[0]);
+						})
+						.attr("cy", function(d) {
+							console.log(d[1]);
+							return yScale(d[1]);
+						})
+						.attr("r", w/100)
+						.attr("class", "circleClass")
+						.attr('fill',function(d) {
+							if (d[2]==0)
+							return 'black';
+							else
+							return 'red';
+						});
+				
+				circles.exit()				//References the exit selection (a subset of the update selection)
+						.transition()		//Initiates a transition on the one element we're deleting
+						.duration(500)		//Move past the right edge of the SVG
+						.remove();
+
+				var num=0;//记录命中数
+
+				for(var i= 0,len = dataset2.length; i< len; i++){
+					if (dataset2[i][2]==1)
+						num=num+1;
+				}
+				d3.select('#score').text(''+num+'/'+dataset2.length);
+
+			});
+			
+
+			button4.on('click',function(){
+
+				var dataset2=[];
+				for(var i= 0,len = dataset.length; i< len; i++){
+						if (dataset[i][3]<=48&&dataset[i][3]>36){
+							dataset2.push([dataset[i][0],dataset[i][1],dataset[i][2],dataset[i][3]]);
+						}
+				}
+
+				
+
+				svg.selectAll(".circleClass")
+					   .data(dataset2)
+					   .transition()
+					   .duration(1000)		
+					   .attr("cx", function(d) {
+					   		return xScale(d[0]);
+					   })
+					   .attr("cy", function(d) {
+					   		return yScale(d[1]);
+					   })
+					   .attr("r", w/100)
+					   .attr("class", "circleClass")
+					   .attr('fill',function(d) {
+								if (d[2]==0)
+								return 'black';
+								else
+								return 'red'
+						});
+
+				circles=svg.selectAll(".circleClass").data(dataset2);
+				
+				circles.enter()								
+						.append("circle")	
+						.attr("cx", function(d) {
+							console.log(d[0]);
+							return xScale(d[0]);
+						})
+						.attr("cy", function(d) {
+							console.log(d[1]);
+							return yScale(d[1]);
+						})
+						.attr("class", "circleClass")
+						.attr("r", w/100)
+						.attr('fill',function(d) {
+							if (d[2]==0)
+							return 'black';
+							else
+							return 'red';
+						})
+						.merge(circles)							
+						.transition()							
+						.duration(5000)
+						.attr("cx", function(d) {
+							console.log(d[0]);
+							return xScale(d[0]);
+						})
+						.attr("cy", function(d) {
+							console.log(d[1]);
+							return yScale(d[1]);
+						})
+						.attr("r", w/100)
+						.attr("class", "circleClass")
+						.attr('fill',function(d) {
+							if (d[2]==0)
+							return 'black';
+							else
+							return 'red';
+						});
+				
+				circles.exit()				//References the exit selection (a subset of the update selection)
+						.transition()		//Initiates a transition on the one element we're deleting
+						.duration(500)		//Move past the right edge of the SVG
+						.remove();
+
+				var num=0;//记录命中数
+
+						for(var i= 0,len = dataset2.length; i< len; i++){
+    						if (dataset2[i][2]==1)
+    							num=num+1;
+						}
+						d3.select('#score').text(''+num+'/'+dataset2.length);
+			});
+
+			button_next.on('click',function(){
+						console.log(dataset_next);
+
+						svg.selectAll(".circleClass")
+					   .data(dataset_next)
+					   .transition()
+					   .duration(1000)		
+					   .attr("cx", function(d) {
+					   		return xScale(d[0]);
+					   })
+					   .attr("cy", function(d) {
+					   		return yScale(d[1]);
+					   })
+					   .attr("r", w/100)
+					   .attr("class", "circleClass")
+					   .attr('fill',function(d) {
+								if (d[2]==0)
+								return 'black';
+								else
+								return 'red'
+						})
+					   /*.on('mouseover',function(d){
+							//显示位置信息和时间
+							svg.append('text')
+						   .attr('x',xScale(d[0]))
+						   .attr('y',yScale(d[1]))
+						   .attr('class','time'+d[3])
+						   .attr('stroke','white')
+						   .text(''+d[3]);
+						})
+						.on('mouseout',function(d){
+							var s='.time'+d[3];
+							svg.selectAll(s)
+						   .text('');
+						});*/
+
+						circles=svg.selectAll(".circleClass").data(dataset_next);
+				
+						circles.enter()								
+						.append("circle")	
+						.attr("cx", function(d) {
+							console.log(d[0]);
+							return xScale(d[0]);
+						})
+						.attr("cy", function(d) {
+							console.log(d[1]);
+							return yScale(d[1]);
+						})
+						.attr("class", "circleClass")
+						.attr("r", w/100)
+						.attr('fill',function(d) {
+							if (d[2]==0)
+							return 'black';
+							else
+							return 'red';
+						})
+						.append("title")
+			   			.text(function(d) {
+			   				return d[3];
+			   			})
+						.merge(circles)							
+						.transition()							
+						.duration(5000)
+						.attr("cx", function(d) {
+							console.log(d[0]);
+							return xScale(d[0]);
+						})
+						.attr("cy", function(d) {
+							console.log(d[1]);
+							return yScale(d[1]);
+						})
+						.attr("r", w/100)
+						.attr("class", "circleClass")
+						.attr('fill',function(d) {
+							if (d[2]==0)
+							return 'black';
+							else
+							return 'red';
+						});
+				
+						circles.exit()				//References the exit selection (a subset of the update selection)
+						.transition()		//Initiates a transition on the one element we're deleting
+						.duration(500)		//Move past the right edge of the SVG
+						.remove();
+						dataset=dataset_next;
+
+						var num=0;//记录命中数
+
+						for(var i= 0,len = dataset.length; i< len; i++){
+    						if (dataset[i][2]==1)
+    							num=num+1;
+						}
+						d3.select('#score').text(''+num+'/'+dataset.length);
+			});
+			
+			
+		</script>
+		
+	</body>
+</html>
